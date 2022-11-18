@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/lang"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -60,11 +61,13 @@ func createExporter(c Config) (sdktrace.SpanExporter, error) {
 	case kindZipkin:
 		return zipkin.New(c.Endpoint)
 	case kindGrpc:
-		return otlptracegrpc.NewUnstarted(
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		return otlptracegrpc.New(ctx,
 			otlptracegrpc.WithInsecure(),
 			otlptracegrpc.WithEndpoint(c.Endpoint),
 			otlptracegrpc.WithDialOption(grpc.WithBlock()),
-		), nil
+		)
 	default:
 		return nil, fmt.Errorf("unknown exporter: %s", c.Batcher)
 	}
